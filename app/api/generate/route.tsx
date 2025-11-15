@@ -2,94 +2,117 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { geminiOpenAIClient } from "@/lib/gemini-openai-client";
 import { prompt } from "@/promptConfig"; // The TSX prompt object is imported here
-import { AIMessage, HumanMessage } from "@langchain/core/messages";
+// import Babel from "@babel/standalone"; // Babel is not used in the final code, so it's commented out/removed.
+
+// Define a type for the data structure to improve type safety
+interface LessonData {
+    id: string; // Assuming 'id' is a string UUID from Supabase
+    lesson_title: string;
+    status: 'generating' | 'generated' | 'failed';
+    generated_code: string;
+}
 
 export async function POST(req: NextRequest) {
-  try {
+    const supabase = createServerSupabase();
+    let initialInsertedData: LessonData | null = null;
 
-    const { topic } = await req.json();
-    const newLesson = {
-        lesson_title : topic ,
-        status : 'generating',
-        generated_code : ''
-    }
+    try {
+        const { topic } = await req.json();
 
-    const supabase = createServerSupabase();
+        const newLesson = {
+            lesson_title: topic,
+            status: 'generating' ,
+            generated_code: ''
+        };
 
-    let initialInsertedData ;
-    try {
-        
-        const { data , error } = await supabase
-            .from("lessons")
-            .insert(newLesson)
-            .select()
-            .single();
-        
-        initialInsertedData = data;
+        const { data, error: insertError } = await supabase
+            .from("lessons")
+            .insert(newLesson)
+            .select()
+            .single();
 
-        if (error) {
-            console.error("Supabase error occured during initial insertion:", error);
-        }
+        if (insertError || !data) {
+            console.error("Supabase error during initial insertion:", insertError || "No data returned.");
+            throw new Error(`Failed to insert initial lesson entry: ${insertError?.message || 'No data'}`);
+        }
 
-        console.log("Initial lesson entry inserted :", data);
+        initialInsertedData = data as LessonData;
+        console.log("Initial lesson entry inserted:", initialInsertedData.id);
 
-    } catch (err) {
-        console.error("Supabase error occured during initial insertion:", err);
-    }
+        // 2. AI Code Generation
+        console.log("Starting AI generation...");
 
+        const systemPromptContent = JSON.stringify(prompt);
 
-    // Prompt AI to generate lesson using tools
-    console.log("startinf generating...")
+        const completion = await geminiOpenAIClient.chat.completions.create({
+            model: "gemini-2.5-flash",
+            messages: [
+                {
+                    role: "system",
+                    content: systemPromptContent // Pass the stringified object directly
+                },
+                {
+                    role: "user",
+                    content: "Generate the React TSX component now. The Topic is: " + topic
+                }
+            ]
+        });
 
-const systemPromptContent = JSON.stringify(prompt);
+        const aiCode = completion.choices[0].message?.content;
 
-const completion = await geminiOpenAIClient.chat.completions.create({
-  model: "gemini-2.5-flash",
-  messages: [
-    { 
-      role: "system", 
-      content: systemPromptContent // Pass the stringified object directly
-    },
-    { 
-      role: "user", 
-      content: "Generate the React TSX component now. The Topic is: " + topic
-    }
-  ]
-});
-// ---------------------------------------------------------------------
+        if (!aiCode || aiCode.trim().length === 0) {
+            console.error("AI failed to return valid code content.");
+            throw new Error("AI returned empty or null response.");
+        }
 
-    const aiCode = completion.choices[0].message?.content || "";
-    
+        // 3. Final Database Update (Status: 'generated')
+        const { error: updateError, data: updatedData } = await supabase
+            .from("lessons")
+            .update({ generated_code: aiCode, status: "generated" })
+            .select()
+            .eq("id", initialInsertedData.id);
 
-//     const transpiledCode = Babel.transform(aiCode)
-        
+        if (updateError || !updatedData) {
+            console.error("Supabase error occurred during final update:", updateError || "No data returned on update.");
+            throw new Error(`Failed to update lesson with generated code: ${updateError?.message || 'No data'}`);
+        }
 
-    try {
-        
-        const { data, error } = await supabase
-            .from("lessons")
-            .update({generated_code : aiCode , status : "generated"})
-            .select()
-            .eq("id" , initialInsertedData.id);
+        console.log("Lesson entry updated successfully.");
 
-        if (error) {
-            console.error("Supabase error occured during update:", error);
-        }
+        // Successful response
+        return NextResponse.json({
+            id: initialInsertedData.id,
+            status: "generated"
+        });
 
-        console.log("Lesson entry updated :", data);
+    } catch (err: any) {
+        console.error("Critical failure in POST /api/generate-lesson:", err.message);
 
-    } catch (err) {
-        console.error("Supabase error occured during update:", err);
-    }
+        if (initialInsertedData?.id) {
+            console.log(`Attempting to mark lesson ID ${initialInsertedData.id} as 'failed'.`);
+            
 
-    
+            try {
+                const { error: failUpdateError } = await supabase
+                    .from("lessons")
+                    .update({ status: "failed" })
+                    .eq("id", initialInsertedData.id);
+                
+                if (failUpdateError) {
+                    console.error(`Supabase error marking lesson as 'failed':`, failUpdateError);
+                } else {
+                    console.log(`Lesson ID ${initialInsertedData.id} successfully marked as 'failed'.`);
+                }
+            } catch (failErr) {
+                console.error("Secondary error during fail status update:", failErr);
+            }
+        }
 
-    return NextResponse.json({
-      id : initialInsertedData.id
-    });
-
-  } catch (err: any) {
-    console.error(err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
-  }
+        // Return the original error to the client
+        return NextResponse.json({ 
+            error: err.message || "An unknown error occurred during generation.",
+            lessonId: initialInsertedData?.id || null,
+            status: "failed"
+        }, { status: 500 });
+    }
 }

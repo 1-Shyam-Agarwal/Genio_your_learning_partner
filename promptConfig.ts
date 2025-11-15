@@ -43,8 +43,8 @@ export const prompt = {
       "rule": "The AI MUST ONLY output the required TSX code block. NO pre-amble, NO post-amble, NO markdown prose, and NO explanation of the code or instructions. The output MUST start and end with the TSX component structure."
     },
     "CRITICAL_OUTPUT_ENFORCEMENT": {
-      "START_RULE": "The OUTPUT **MUST** start exactly with only this signature: `function TopicExplanationModule(): React.JSX.Element {`.",
-      "END_RULE": "The OUTPUT **MUST** end exactly with the component's closing brace `}` for a function statement).",
+      "START_RULE": "The OUTPUT **MUST** start exactly with only this signature: `function TopicExplanationModule(): React.JSX.Element \\{\\{`.",
+      "END_RULE": "The OUTPUT **MUST** end exactly with the component's closing brace `\\}\\}` for a function statement).",
       "FORBIDDEN_KEYWORDS": "ABSOLUTELY **FORBIDDEN**: `import`, `export`, `className`, ````tsx`, `// TSX`, ````, template literals (`\\`), or any preceding/trailing commentary. FAILURE TO COMPLY WILL NULLIFY THE ENTIRE RESPONSE."
     },
     "goal": "Generate a deployable TSX component that teaches a concept via a step-by-step method and immediately tests understanding with one embedded interactive element based on the 'user-input' category, strictly following all CRITICAL_OUTPUT_ENFORCEMENT rules, and using only inline CSS."

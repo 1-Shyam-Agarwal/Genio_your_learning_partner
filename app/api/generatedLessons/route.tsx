@@ -10,7 +10,6 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       .select("id, lesson_title, status, created_at") // only the fields you want
       .order("created_at", { ascending: false });
 
-      console.log("lessons : " ,lessons);
     if (error) {
       console.error("Supabase error fetching lesson:", error);
       return NextResponse.json({ error: "Lesson not found" }, { status: 404 });
