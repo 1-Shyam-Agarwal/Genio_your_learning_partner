@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase/client";
+import { supabaseServer } from "@/lib/supabase/server";
 export const dynamic = 'force-dynamic';
 
 // Using require is necessary and correct for @babel/standalone in a Node.js context.
@@ -21,7 +21,7 @@ export async function GET(
 
   try {
     //  Clearer Destructuring for Supabase
-    const { data: lessonData, error: dbError } = await supabase
+    const { data: lessonData, error: dbError } = await supabaseServer
       .from("lessons")
       .select("generated_code") // Fetch only necessary columns
       .eq("id", id)

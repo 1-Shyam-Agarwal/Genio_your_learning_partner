@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase/client";
+import { supabaseServer } from "@/lib/supabase/server";
 import { geminiOpenAIClient } from "@/lib/gemini-openai-client";
 import { prompt } from "@/promptConfig"; 
 const { transform } = require("@babel/standalone");
@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
             generated_code: ''
         };
 
-        const { data, error: insertError } = await supabase
+        const { data, error: insertError } = await supabaseServer
             .from("lessons")
             .insert(newLesson)
             .select()
@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
         }
 
 
-        const { error: updateError, data: updatedData } = await supabase
+        const { error: updateError, data: updatedData } = await supabaseServer
             .from("lessons")
             .update({ generated_code: compiled, status: "generated" })
             .select()
@@ -102,7 +102,7 @@ export async function POST(req: NextRequest) {
             
 
             try {
-                const { error: failUpdateError } = await supabase
+                const { error: failUpdateError } = await supabaseServer
                     .from("lessons")
                     .update({ status: "failed" })
                     .eq("id", initialInsertedData.id);
