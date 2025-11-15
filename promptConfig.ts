@@ -87,7 +87,7 @@ export const prompt = {
         "section_background": "Internal sections (StepBlock, Interactive Element Wrapper) SHOULD use a contextually thematic background color (e.g., light blue/purple for physics/cosmos, light green for plant-based, etc.). Text color MUST be chosen for high contrast against its direct background."
       },
       "spacing_mandate": {
-        "rule": "Maintain a uniform and consistent vertical and horizontal separation (padding/margin/gap) across all elements. A standard **16px** padding should be used internally for all main containers (StepBlock, Interactive Element Wrapper). A uniform **10px** vertical gap MUST separate all major block-level elements.",
+        "rule": "Maintain a uniform and consistent vertical and horizontal separation (padding/margin/gap) across all elements and spacing between every heading and their box should be uniform and heading should be closer to their box. A standard **16px** padding should be used internally for all main containers (StepBlock, Interactive Element Wrapper). A uniform **10px** vertical gap MUST separate all major block-level elements.",
         "specific_enforcement": "The standardized spacing values (e.g., 10px for gap, 16px for padding) MUST be applied consistently across the ExplanationCard, all StepBlocks, and the Interactive Element for visual harmony."
       },
       "explanation_Card": {
