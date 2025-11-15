@@ -1,51 +1,157 @@
-import { DeployButton } from "@/components/deploy-button";
-import { EnvVarWarning } from "@/components/env-var-warning";
-import { AuthButton } from "@/components/auth-button";
-import { Hero } from "@/components/hero";
-import { ThemeSwitcher } from "@/components/theme-switcher";
-import { ConnectSupabaseSteps } from "@/components/tutorial/connect-supabase-steps";
-import { SignUpUserSteps } from "@/components/tutorial/sign-up-user-steps";
-import { hasEnvVars } from "@/lib/utils";
-import Link from "next/link";
+'use client';
 
-export default function Home() {
-  return (
-    <main className="min-h-screen flex flex-col items-center">
-      <div className="flex-1 w-full flex flex-col gap-20 items-center">
-        <nav className="w-full flex justify-center border-b border-b-foreground/10 h-16">
-          <div className="w-full max-w-5xl flex justify-between items-center p-3 px-5 text-sm">
-            <div className="flex gap-5 items-center font-semibold">
-              <Link href={"/"}>Next.js Supabase Starter</Link>
-              <div className="flex items-center gap-2">
-                <DeployButton />
-              </div>
-            </div>
-            {!hasEnvVars ? <EnvVarWarning /> : <AuthButton />}
-          </div>
-        </nav>
-        <div className="flex-1 flex flex-col gap-20 max-w-5xl p-5">
-          <Hero />
-          <main className="flex-1 flex flex-col gap-6 px-4">
-            <h2 className="font-medium text-xl mb-4">Next steps</h2>
-            {hasEnvVars ? <SignUpUserSteps /> : <ConnectSupabaseSteps />}
-          </main>
-        </div>
+import ChatTextArea from "@/components/chatTextArea";
+import ResponseArea from "@/components/responseArea";
+import Navbar from "@/components/navbar";
+import History from "@/components/historyOverlay";
+import { useState } from "react";
+import { useEffect } from "react";
+import {supabaseClient} from "@/lib/supabase/client"
 
-        <footer className="w-full flex items-center justify-center border-t mx-auto text-center text-xs gap-8 py-16">
-          <p>
-            Powered by{" "}
-            <a
-              href="https://supabase.com/?utm_source=create-next-app&utm_medium=template&utm_term=nextjs"
-              target="_blank"
-              className="font-bold hover:underline"
-              rel="noreferrer"
-            >
-              Supabase
-            </a>
-          </p>
-          <ThemeSwitcher />
-        </footer>
-      </div>
-    </main>
-  );
+type responseType = {
+  id: string,
+};
+
+type historyItem = {
+  lessonTitle : string,
+  id : string,
+  generatingStatus : string
+  created_at : Date
 }
+
+const landingPage = ()=>
+{
+    const [searchText , setSearchText] = useState<string>("");
+    const [loading , setLoading] = useState<boolean>(false);
+    const [showHistory , setShowHistory] = useState<boolean>(false);
+    const [learningHistory , setLearningHistory] = useState<historyItem[]>([]);
+    const [response, setResponse] = useState<responseType>({
+      id: "",
+    });
+    
+    const supabaseClt = supabaseClient(); 
+
+    // Fetch lessons from API
+    const fetchLessons = async () => {
+      try {
+        const res = await fetch("/api/generatedLessons"); // your API route
+        if (!res.ok) return;
+
+        const data = await res.json();
+        console.log("data : ", data.lessons);
+        setLearningHistory(data.lessons.map((lesson)=>
+        {
+            return {
+               lessonTitle : lesson.lesson_title,
+              id : lesson.id,
+              generatingStatus : lesson.status,
+              created_at : lesson.created_at
+
+            }
+        }));
+
+      } catch (err: any) {
+        console.error(err);
+      }
+    };
+
+    useEffect(()=>
+    {
+
+       fetchLessons();
+
+        const channel = supabaseClt.channel("lessons-channel");
+          channel
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "lessons" }, 
+            (payload) => {
+
+              const { eventType } = payload;
+              if (eventType === "INSERT") {
+                const newLesson = {
+                  lessonTitle: payload.new.lesson_title,
+                  id: payload.new.id,
+                  generatingStatus: payload.new.status,
+                  created_at: payload.new.created_at,
+                };
+                setLearningHistory((prev) => [newLesson, ...prev]);
+
+              } else if (eventType === "UPDATE") {
+
+                const { id, lesson_title, status } = payload.new;
+                setLearningHistory((prev) =>
+                  prev.map((item) =>
+                    item.id === id
+                      ? { ...item, generatingStatus: status }
+                      : item
+                  )
+                );
+              }
+            }
+          )
+          .subscribe((status) => {
+            console.log("Realtime subscription status:", status);
+          });
+
+        return () => {
+          supabaseClt.removeChannel(channel);
+        };
+
+    },[])
+       
+
+    async function searchHandler(searchText : string) : Promise<void>
+    {
+        if (!searchText) return;
+
+        try {
+          setLoading(true);
+          const res = await fetch("/api/generate", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ topic: searchText }), // send topic
+          });
+
+          if (!res.ok) {
+            console.log("error occured while generating a response.")
+            throw new Error(`HTTP error! status: ${res.status}`);
+          }
+
+          const data = await res.json();
+          console.log("API Response:", data);
+
+          setResponse((prev)=>{return {...prev , id:data.id}});
+        } catch (error) {
+          console.error("Error fetching data:", error);
+        }finally{
+          setLoading(false);
+        }
+      };
+
+    return(<div className="h-screen p-8 px-12 overflow-y-auto">
+
+      <Navbar 
+          setShowHistory={setShowHistory}/>
+
+      <ResponseArea 
+          response={response} 
+          loading={loading} 
+          searchHandler={searchHandler}/>
+
+      <ChatTextArea 
+          searchText = {searchText} 
+          loading={loading} 
+          setSearchText={setSearchText} 
+          searchHandler={searchHandler}/>  
+
+      {
+            showHistory && <History setShowHistory={setShowHistory} learningHistory={learningHistory} ></History>
+      }  
+
+    </div>)
+}
+
+export default landingPage;
