@@ -19,6 +19,13 @@ type historyItem = {
   created_at : Date
 }
 
+type lesson  = {
+  lesson_title: string,
+  id: number | string,
+  status: 'generated' | 'generating' | 'failed' | string,
+  created_at: string,
+}
+
 const landingPage = ()=>
 {
     const [searchText , setSearchText] = useState<string>("");
@@ -38,8 +45,8 @@ const landingPage = ()=>
         if (!res.ok) return;
 
         const data = await res.json();
-        console.log("data : ", data.lessons);
-        setLearningHistory(data.lessons.map((lesson)=>
+
+        setLearningHistory(data?.lessons.map((lesson:lesson)=>
         {
             return {
                lessonTitle : lesson.lesson_title,

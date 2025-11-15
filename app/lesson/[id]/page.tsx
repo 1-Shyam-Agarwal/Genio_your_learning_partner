@@ -23,7 +23,7 @@ const LessonPage: React.FC = () => {
         
         const data = await res.json();
 
-        const code = data.compiled;
+        const code = data?.compiled;
     
         const componentFactory = new Function('React', `return ${code}`)(React);
 
@@ -40,7 +40,7 @@ const LessonPage: React.FC = () => {
   }, [id]);
 
   if (error) return <p>Error: {error}</p>;
-  if (!LessonComponent) return <p>Unable to generate content due to any reason</p>;
+  if (!LessonComponent) return <p className='100vw 100vh flex items-center justify-center text-md'>Fetching Code</p>;
 
   return (
     <div className="p-4">
