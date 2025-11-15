@@ -82,7 +82,7 @@ const ResponseArea = ({response , loading, searchHandler} : responseProps)=>
             loading ? 
             (
                 <div className="flex flex-col justify-center items-center">
-                  <span>Learning engine is creating its magical content ...</span>
+                  <span>Learning engine is creating magical content for you...</span>
                   <div className="loading">
                     <span></span>
                     <span></span>

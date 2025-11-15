@@ -6,7 +6,7 @@ import Navbar from "@/components/navbar";
 import History from "@/components/historyOverlay";
 import { useState } from "react";
 import { useEffect } from "react";
-import {supabaseClient} from "@/lib/supabase/client"
+import { supabase } from "@/lib/supabase/client";
 
 type responseType = {
   id: string,
@@ -35,16 +35,16 @@ const landingPage = ()=>
     const [response, setResponse] = useState<responseType>({
       id: "",
     });
-    
-    const supabaseClt = supabaseClient(); 
 
     // Fetch lessons from API
     const fetchLessons = async () => {
       try {
-        const res = await fetch("/api/generatedLessons"); // your API route
+        const res = await fetch("/api/generatedLessons" , {cache: 'no-store'}); // your API route
         if (!res.ok) return;
 
         const data = await res.json();
+
+        console.log("datatatatt" , data);
 
         setLearningHistory(data?.lessons.map((lesson:lesson)=>
         {
@@ -67,7 +67,7 @@ const landingPage = ()=>
 
        fetchLessons();
 
-        const channel = supabaseClt.channel("lessons-channel");
+        const channel = supabase.channel("lessons-channel");
           channel
           .on(
             "postgres_changes",
@@ -102,7 +102,7 @@ const landingPage = ()=>
           });
 
         return () => {
-          supabaseClt.removeChannel(channel);
+          supabase.removeChannel(channel);
         };
 
     },[])
@@ -119,8 +119,9 @@ const landingPage = ()=>
             headers: {
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({ topic: searchText }), // send topic
-          });
+            body: JSON.stringify({ topic: searchText }), 
+            cache: 'no-store' 
+          },);
 
           if (!res.ok) {
             console.log("error occured while generating a response.")

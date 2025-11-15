@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServerSupabase } from "@/lib/supabase/server";
+import { supabase } from "@/lib/supabase/client";
+export const dynamic = 'force-dynamic';
 
 // Using require is necessary and correct for @babel/standalone in a Node.js context.
 const { transform } = require("@babel/standalone");
@@ -18,11 +19,9 @@ export async function GET(
     );
   }
 
-  const supabaseServer = createServerSupabase();
-
   try {
     //  Clearer Destructuring for Supabase
-    const { data: lessonData, error: dbError } = await supabaseServer
+    const { data: lessonData, error: dbError } = await supabase
       .from("lessons")
       .select("generated_code") // Fetch only necessary columns
       .eq("id", id)
@@ -55,18 +54,7 @@ export async function GET(
         );
     }
 
-    const compiled = transform(aiCode, {
-      presets: ["react", "typescript"],
-      filename: "file.tsx",
-      //  Optional: Add a try/catch around compilation if Babel itself might fail on bad input
-    })?.code;
-
-    // Check if compilation was successful
-    if (!compiled) {
-        throw new Error("Babel compilation failed to produce code.");
-    }
-
-    return NextResponse.json({ compiled });
+    return NextResponse.json({ aiCode });
   } catch (err) {
     // Catch-all for transformation errors, etc.
     console.error("Unexpected server error:", err);

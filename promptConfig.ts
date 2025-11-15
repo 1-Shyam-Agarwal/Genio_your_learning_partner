@@ -12,7 +12,9 @@ export const prompt = {
       "format": "Single, complete, default-exported React Functional Component.",
       "export_name": "TopicExplanationModule",
       "styling": "MUST use the **style={{...}}** attribute exclusively for all visual presentation, based on CSS_DIRECTIVES. DO NOT use className.",
-      "code_quality": "Production-ready, semantic HTML, strict adherence to modern React/TSX standards."
+      "code_quality": "Production-ready, semantic HTML, strict adherence to modern React/TSX standards.",
+      "conciseness_mandate":"The generated code's content (comments, non-critical doc strings) must be minimalist and highly condensed. All prose must be as brief as possible without sacrificing clarity.",
+      "code_density": "Minimize all non-functional commentary and use concise variable names where semantic clarity is maintained."
     },
     "content_mandates": {
       "overall_structure": "A continuous flow of educational content designed for maximum retention.",
@@ -79,8 +81,15 @@ export const prompt = {
       "STRICT STYLING: Must use the 'style' attribute exclusively for all visual properties, translating CSS_DIRECTIVES into JS object syntax."
     ],
     "styling_instructions": {
-      "general_styling": "Simple, clean styling for blocks; good visual detailing for interactive elements. Ensure mobile-first responsiveness.",
-      "background_details": "Background color should be based on the theme of the topic (e.g., light blue/purple for physics/cosmos, light green for plant-based, etc.). Text color should be chosen for high contrast against this background. The ExplanationCard background SHOULD REMAIN WHITE.",
+      "background_details": {
+        "outer_card_background": "The component's root container (the outermost div) MUST NOT have any explicit background color (i.e., should be transparent/inherit).",
+        "explanation_card_background": "The main content wrapper (the ExplanationCard component) MUST maintain a **WHITE background**.",
+        "section_background": "Internal sections (StepBlock, Interactive Element Wrapper) SHOULD use a contextually thematic background color (e.g., light blue/purple for physics/cosmos, light green for plant-based, etc.). Text color MUST be chosen for high contrast against its direct background."
+      },
+      "spacing_mandate": {
+        "rule": "Maintain a uniform and consistent vertical and horizontal separation (padding/margin/gap) across all elements. A standard **16px** padding should be used internally for all main containers (StepBlock, Interactive Element Wrapper). A uniform **10px** vertical gap MUST separate all major block-level elements.",
+        "specific_enforcement": "The standardized spacing values (e.g., 10px for gap, 16px for padding) MUST be applied consistently across the ExplanationCard, all StepBlocks, and the Interactive Element for visual harmony."
+      },
       "explanation_Card": {
         "concept": "Modern, centered, structured container with high visual depth and responsiveness.",
         "CSS_DIRECTIVES": " padding: 18px; transition: all 0.3s; width: 100%; max-width: 896px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px;",

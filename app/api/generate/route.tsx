@@ -1,19 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServerSupabase } from "@/lib/supabase/server";
+import { supabase } from "@/lib/supabase/client";
 import { geminiOpenAIClient } from "@/lib/gemini-openai-client";
-import { prompt } from "@/promptConfig"; // The TSX prompt object is imported here
-// import Babel from "@babel/standalone"; // Babel is not used in the final code, so it's commented out/removed.
+import { prompt } from "@/promptConfig"; 
+const { transform } = require("@babel/standalone");
 
-// Define a type for the data structure to improve type safety
+
+
 interface LessonData {
-    id: string; // Assuming 'id' is a string UUID from Supabase
+    id: string; 
     lesson_title: string;
     status: 'generating' | 'generated' | 'failed';
     generated_code: string;
 }
 
+
 export async function POST(req: NextRequest) {
-    const supabase = createServerSupabase();
+
     let initialInsertedData: LessonData | null = null;
 
     try {
@@ -39,7 +41,7 @@ export async function POST(req: NextRequest) {
         initialInsertedData = data as LessonData;
         console.log("Initial lesson entry inserted:", initialInsertedData.id);
 
-        // 2. AI Code Generation
+        //  AI Code Generation
         console.log("Starting AI generation...");
 
         const systemPromptContent = JSON.stringify(prompt);
@@ -49,7 +51,7 @@ export async function POST(req: NextRequest) {
             messages: [
                 {
                     role: "system",
-                    content: systemPromptContent // Pass the stringified object directly
+                    content: systemPromptContent // Passed the stringified object directly
                 },
                 {
                     role: "user",
@@ -65,10 +67,19 @@ export async function POST(req: NextRequest) {
             throw new Error("AI returned empty or null response.");
         }
 
-        // 3. Final Database Update (Status: 'generated')
+        const compiled = transform(aiCode, {
+            presets: ["react", "typescript"],
+            filename: "file.tsx",
+        })?.code;
+
+        if (!compiled) {
+            throw new Error("Babel compilation failed to produce code.");
+        }
+
+
         const { error: updateError, data: updatedData } = await supabase
             .from("lessons")
-            .update({ generated_code: aiCode, status: "generated" })
+            .update({ generated_code: compiled, status: "generated" })
             .select()
             .eq("id", initialInsertedData.id);
 
@@ -77,12 +88,10 @@ export async function POST(req: NextRequest) {
             throw new Error(`Failed to update lesson with generated code: ${updateError?.message || 'No data'}`);
         }
 
-        console.log("Lesson entry updated successfully.");
 
-        // Successful response
         return NextResponse.json({
             id: initialInsertedData.id,
-            status: "generated"
+            status: "generated",
         });
 
     } catch (err: any) {
@@ -108,7 +117,6 @@ export async function POST(req: NextRequest) {
             }
         }
 
-        // Return the original error to the client
         return NextResponse.json({ 
             error: err.message || "An unknown error occurred during generation.",
             lessonId: initialInsertedData?.id || null,

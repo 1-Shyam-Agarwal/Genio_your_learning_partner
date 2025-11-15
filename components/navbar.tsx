@@ -16,7 +16,7 @@ const Navbar = ({setShowHistory} : {setShowHistory : React.Dispatch<React.SetSta
                         <div className="text-[10px] font-semibold text-gray-600 ml-[1.2rem]">Your Learning Partner</div>
                     </div>
 
-                    <div className="mr-[25px] p-2 px-4 rounded-sm text-sm text-gray-800 border bg-gray-100 border-gray-200  hover:bg-gray-200"
+                    <div className="mr-[25px] p-2 px-4 rounded-sm text-sm text-gray-800 border bg-gray-100 border-gray-200 cursor-pointer hover:bg-gray-200"
                         onClick={()=>{setShowHistory(prev=>!prev)}}
                     >
                         Learning History

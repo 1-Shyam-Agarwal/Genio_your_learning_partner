@@ -1,18 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServerSupabase } from "@/lib/supabase/server";
+import { supabase } from "@/lib/supabase/client";
+export const dynamic = 'force-dynamic';
+
 
 export async function GET(req: NextRequest) {
   try {
-    const supabase = createServerSupabase();
-
     const { data: lessons, error } = await supabase
       .from("lessons")
-      .select("id, lesson_title, status, created_at") // only the fields you want
+      .select("id, lesson_title, status, created_at")
       .order("created_at", { ascending: false });
+
 
     if (error) {
       console.error("Supabase error fetching lesson:", error);
-      return NextResponse.json({ error: "Lesson not found" }, { status: 404 });
+      // It's generally better to return a 500 status if the DB query fails.
+      return NextResponse.json({ error: "Failed to fetch lessons" }, { status: 500 }); 
     }
 
     return NextResponse.json({ lessons });
